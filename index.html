@@ -15,6 +15,12 @@
     height: 100vh;
     margin: 0;
     color: #eee;
+    transition: all 0.3s;
+  }
+
+  body.light {
+    background: linear-gradient(135deg, #e0e0e0, #f5f5f5);
+    color: #222;
   }
 
   .calculator {
@@ -25,14 +31,18 @@
     box-shadow: 0 12px 30px rgba(0,0,0,0.5);
     width: 480px;
     text-align: center;
-    transition: transform 0.3s;
+    transition: all 0.3s;
+  }
+  body.light .calculator {
+    background: #ffffffcc;
+    color: #222;
   }
   .calculator:hover { transform: translateY(-5px); }
 
-  h2 { margin-bottom: 25px; color: #f0f0f0; font-size: 24px; }
+  h2 { margin-bottom: 25px; font-size: 24px; }
 
   .input-group { margin: 18px 0; text-align: left; }
-  label { display: block; margin-bottom: 6px; font-weight: 600; color: #ccc; }
+  label { display: block; margin-bottom: 6px; font-weight: 600; }
 
   input[type="number"] {
     width: 100%; padding: 10px 12px; border-radius: 10px;
@@ -40,9 +50,14 @@
     font-size: 16px; outline: none; transition: all 0.3s;
     box-shadow: inset 0 2px 5px rgba(0,0,0,0.3);
   }
+  body.light input[type="number"] {
+    background: #f0f0f0;
+    color: #222;
+    border: 1px solid #ccc;
+  }
   input[type="number"]:focus { border-color: #74ebd5; box-shadow: 0 0 10px rgba(116,235,213,0.5); }
 
-  .btn-calc, .btn-copy {
+  .btn-calc, .btn-copy, .btn-theme {
     margin-top: 15px; padding: 12px 25px; font-size: 16px; font-weight: 600;
     border: none; border-radius: 12px; cursor: pointer; color: #fff;
     box-shadow: 0 5px 15px rgba(0,0,0,0.4); transition: all 0.3s;
@@ -51,8 +66,10 @@
   .btn-calc:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
   .btn-copy { background: linear-gradient(90deg, #f6a11b, #d36b0b); margin-left: 10px; }
   .btn-copy:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
+  .btn-theme { background: linear-gradient(90deg, #888888, #555555); margin-left: 10px; }
+  .btn-theme:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
 
-  .exchange-rate { margin-top: 10px; font-size: 14px; color: #ccc; display: flex; align-items: center; justify-content: center; }
+  .exchange-rate { margin-top: 10px; font-size: 14px; display: flex; align-items: center; justify-content: center; }
   .exchange-rate span { margin-left: 5px; font-weight: 600; }
 
   .result {
@@ -60,16 +77,24 @@
     border-radius: 12px; background: #5a5a5a; color: #fff;
     box-shadow: 0 5px 15px rgba(0,0,0,0.4); transition: all 0.3s;
   }
+  body.light .result {
+    background: #e0e0e0;
+    color: #222;
+  }
 
   .per-person-section, .forecast-section { margin-top: 15px; text-align: left; }
-  .per-person-section h3, .forecast-section h3 { margin-bottom: 8px; color: #ccc; font-size: 16px; }
+  .per-person-section h3, .forecast-section h3 { margin-bottom: 8px; font-size: 16px; }
   .per-person, .forecast {
     font-size: 16px; font-weight: 500; padding: 12px; border-radius: 12px;
     background: #606060; color: #fff; box-shadow: 0 5px 12px rgba(0,0,0,0.3);
   }
+  body.light .per-person, body.light .forecast {
+    background: #f0f0f0; color: #222;
+    box-shadow: 0 5px 12px rgba(0,0,0,0.1);
+  }
   .per-person div, .forecast div { margin: 4px 0; }
 
-  /* Минималистичный слайдер без кружка */
+  /* Минималистичные слайдеры без кружка */
   input[type="range"] {
     -webkit-appearance: none;
     width: 100%;
@@ -79,16 +104,13 @@
     outline: none;
     margin-top: 6px;
   }
+  body.light input[type="range"] { background: #ccc; }
   input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
     width: 0;
     height: 0;
   }
-  input[type="range"]::-moz-range-thumb {
-    width: 0;
-    height: 0;
-    border: none;
-  }
+  input[type="range"]::-moz-range-thumb { width: 0; height: 0; border: none; }
 
   .slider-value {
     font-weight: 600;
@@ -132,6 +154,7 @@
 
   <button class="btn-calc" id="calculateBtn">Рассчитать</button>
   <button class="btn-copy" id="copyBtn">Скопировать</button>
+  <button class="btn-theme" id="toggleTheme">Сменить тему</button>
 
   <div class="result" id="result">Итого: 💵0 $ | ₽0 ₽</div>
 
@@ -172,38 +195,20 @@ async function fetchExchangeRate() {
 }
 fetchExchangeRate();
 
-function updateSliderFill(slider) {
-  const value = slider.value;
-  const min = slider.min ? slider.min : 0;
-  const max = slider.max ? slider.max : 100;
-  const percentage = ((value - min) / (max - min)) * 100;
-  slider.style.background = `linear-gradient(to right, #f6a11b 0%, #f6a11b ${percentage}%, #606060 ${percentage}%, #606060 100%)`;
-}
-
+const numPeopleSlider = document.getElementById('numPeople');
 const monthsSlider = document.getElementById('months');
-const monthsValue = document.getElementById('monthsValue');
-monthsSlider.addEventListener('input', () => {
-  monthsValue.textContent = monthsSlider.value;
-  updateSliderFill(monthsSlider);
-  calculate();
-});
-updateSliderFill(monthsSlider);
-
-const peopleSlider = document.getElementById('numPeople');
 const peopleValue = document.getElementById('peopleValue');
-peopleSlider.addEventListener('input', () => {
-  peopleValue.textContent = peopleSlider.value;
-  updateSliderFill(peopleSlider);
-  calculate();
-});
-updateSliderFill(peopleSlider);
+const monthsValue = document.getElementById('monthsValue');
+
+numPeopleSlider.addEventListener('input', () => { peopleValue.textContent = numPeopleSlider.value; });
+monthsSlider.addEventListener('input', () => { monthsValue.textContent = monthsSlider.value; });
 
 function calculate() {
   const robux = parseFloat(document.getElementById('robux').value) || 0;
   const rateDollar = parseFloat(document.getElementById('rateDollar').value) || 0;
-  const numPeople = parseInt(document.getElementById('numPeople').value) || 1;
+  const numPeople = parseInt(numPeopleSlider.value) || 1;
   const robux72h = parseFloat(document.getElementById('robux72h').value) || 0;
-  const months = parseInt(document.getElementById('months').value) || 1;
+  const months = parseInt(monthsSlider.value) || 1;
 
   const dollars = robux * rateDollar;
   const rubles = dollars * usdToRubValue;
@@ -244,7 +249,10 @@ document.getElementById('copyBtn').addEventListener('click', () => {
   alert('Результаты скопированы!');
 });
 
-calculate();
+// Переключение темы
+document.getElementById('toggleTheme').addEventListener('click', () => {
+  document.body.classList.toggle('light');
+});
 </script>
 </body>
 </html>
